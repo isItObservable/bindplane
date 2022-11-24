@@ -3,8 +3,7 @@
 ################################################################################
 ### Script deploying the Observ-K8s environment
 ### Parameters:
-### dttoken : Dynatrace Data ingest Api token ( Required)
-### dturl: Dynatrace url including https ( Required)
+### Clustern name: name of your k8s cluster
 ### oteldemo_version: Otel-demo version ( not manadatory , default value: v1.0.0
 ################################################################################
 
@@ -33,14 +32,6 @@ fi
 echo "parsing arguments"
 while [ $# -gt 0 ]; do
   case "$1" in
-  --dttoken)
-    DTTOKEN="$2"
-   shift 2
-    ;;
-  --dturl)
-    DTURL="$2"
-   shift 2
-    ;;
   --clustername)
     CLUSTERNAME="$2"
    shift 2
@@ -64,16 +55,6 @@ fi
 if [ -z "$VERSION" ]; then
   VERSION=v1.0.0
   echo "Deploying the Otel demo version $VERSION"
-fi
-
-if [ -z "$DTURL" ]; then
-  echo "Error: environment-url not set!"
-  exit 1
-fi
-
-if [ -z "$DTTOKEN" ]; then
-  echo "Error: api-token not set!"
-  exit 1
 fi
 
 

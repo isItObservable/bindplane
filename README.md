@@ -89,7 +89,7 @@ cd bindplane
 The application will deploy the otel demo v1.0.0
 ```
 chmod 777 deployment.sh
-./deployment.sh  --dttoken $DATA_INGEST_TOKEN --dturl $DT_TENANT_URL --clustername ${NAME}
+./deployment.sh  --clustername ${NAME}
 ```
 
 
