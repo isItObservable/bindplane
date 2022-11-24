@@ -1,0 +1,40 @@
+apiVersion: bindplane.observiq.com/v1
+kind: DestinationType
+metadata:
+  name: otlp_dynatrace
+  displayName: OpenTelemetry Dyantrace (OTLP http)
+  icon: /icons/destinations/dynatrace.svg
+  description: Send traces to dynatrace endpoint.
+spec:
+  parameters:
+    - name: dynatrace_endpoint
+      label: Dynatrace url
+      description: Dynatradce url ( example https://dded.live.dynatrace.com) .
+      type: string
+      default: ""
+      required: true
+
+    - name: apitoken
+      label: Access Token
+      description:  Access Token that is restricted to 'OpenTelemetry Trace inges' scope. Required if Endpoint is specified
+      type: string
+      required: true
+      default: ""
+      documentation:
+        - text: Read more
+          url: https://www.dynatrace.com/support/help/extend-dynatrace/opentelemetry/opentelemetry-traces/opentelemetry-trace-ingest-api
+
+
+  traces:
+    exporters: |
+      - otlphttp:
+          endpoint: {{ .dynatrace_endpoint }}
+          headers:
+            Authorization: "Api-Token {{ .apitoken }}"
+
+
+    processors: |
+      - batch:
+          send_batch_max_size: 1000
+          send_batch_size: 1000
+          timeout: 30s

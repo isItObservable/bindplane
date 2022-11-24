@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bindplane-op
+  namespace: bindplane
+  labels:
+    app: bindplane-op
+    component: server
+spec:
+  podManagementPolicy: OrderedReady
+  serviceName: bindplane-op
+  selector:
+    matchLabels:
+      app: bindplane-op
+      component: server
+  template:
+    metadata:
+      labels:
+        app: bindplane-op
+        component: server
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:  [bindplane-op]
+                  - key: component
+                    operator: In
+                    values: [server]
+      initContainers:
+        - name: take-data-dir-ownership
+          image: alpine:3
+          command:
+            - chown
+            - -R
+            - 10001:10001
+            - /opt/bindplane-op-data
+          volumeMounts:
+            - mountPath: /opt/bindplane-op-data
+              name: database
+      containers:
+        - name: server
+          image: observiq/bindplane:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            - name: BINDPLANE_CONFIG_SERVER_URL
+              value: http://bindplane-op:3001
+            - name: BINDPLANE_CONFIG_REMOTE_URL
+              value: ws://bindplane-op:3001
+            - name: BINDPLANE_CONFIG_USERNAME
+              value: admin
+            - name: BINDPLANE_CONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bindplane
+                  key: BINDPLANE_PASS
+            - name: BINDPLANE_CONFIG_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bindplane
+                  key: BINDPLANE_CONFIG_SECRET_KEY
+            - name: BINDPLANE_CONFIG_SESSIONS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bindplane
+                  key: BINDPLANE_CONFIG_SESSIONS_SECRET
+            - name: BINDPLANE_CONFIG_LOG_OUTPUT
+              value: stdout
+          resources:
+            requests:
+              cpu: 250m
+              memory: 250Mi
+          volumeMounts:
+            - mountPath: /opt/bindplane-op-data
+              name: database
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5",]
+      terminationGracePeriodSeconds: 60
+  volumeClaimTemplates:
+    - metadata:
+        name: database
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "10Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bindplane-op
+    component: server
+  name: bindplane-op
+  namespace: bindplane
+spec:
+  ports:
+    - port: 3001
+      protocol: TCP
+      targetPort: http
+      name: http
+  selector:
+    app: bindplane-op
+    component: server
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bindplane-op
+    component: server
+  name: bindplane-op-headless
+  namespace: bindplane
+spec:
+  clusterIP: None
+  ports:
+    - port: 3001
+      protocol: TCP
+      targetPort: http
+      name: http
+  selector:
+    app: bindplane-op
+    component: server
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blindplane-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host :  "blindplane.IP_TO_REPLACE.nip.io"
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: "/"
+            backend:
+              service:
+                name: bindplane-op
+                port:
+                  number: 3001

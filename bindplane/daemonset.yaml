@@ -1,0 +1,207 @@
+# yamllint disable rule:line-length
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: observiq-otel-collector
+  namespace: bindplane
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: observiq-otel-collector
+  name: observiq-otel-collector
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - namespaces
+      - namespaces/status
+      - nodes
+      - nodes/spec
+      - nodes/stats
+      - nodes/proxy
+      - pods
+      - pods/status
+      - replicationcontrollers
+      - replicationcontrollers/status
+      - resourcequotas
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: observiq-otel-collector
+  name: observiq-otel-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: observiq-otel-collector
+subjects:
+  - kind: ServiceAccount
+    name: observiq-otel-collector
+    namespace: bindplane
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: observiq-otel-collector
+  labels:
+    app: observiq-otel-collector
+spec:
+  selector:
+    matchLabels:
+      app: observiq-otel-collector
+  template:
+    metadata:
+      labels:
+        app: observiq-otel-collector
+    spec:
+      containers:
+        - name: otc-container
+          env:
+            - name: K8S_CLUSTER
+              value: gke
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+
+            - name: OPAMP_ENDPOINT
+              value: ws://bindplane-op-headless.bindplane.svc.cluster.local:3001/v1/opamp
+            - name: OPAMP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bindplane
+                  key: BINDPLANE_CONFIG_SECRET_KEY
+            - name: OPAMP_LABELS
+              value: configuration=k8s
+
+          image: observiq/observiq-otel-collector:1.12.0
+          #image: bmedora/observiq-otel-collector-amd64:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 250Mi
+          volumeMounts:
+            - mountPath: /var/log
+              name: varlog
+            - mountPath: /var/lib/docker/containers
+              name: dockerlogs
+            - mountPath: /var/lib/observiq/otelcol/node
+              name: storage
+      dnsPolicy: ClusterFirstWithHostNet
+      # Required for k8sattributes processor
+      hostNetwork: false
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        # Must be able to mount host volume and read logs
+        # from filesystem and journald.
+        runAsUser: 0
+      serviceAccount: observiq-otel-collector
+      serviceAccountName: observiq-otel-collector
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - hostPath:
+            path: /var/log
+            type: ""
+          name: varlog
+        - hostPath:
+            path: /var/lib/docker/containers
+            type: ""
+          name: dockerlogs
+        - hostPath:
+            path: /var/lib/observiq/otelcol/node
+            type: ""
+          name: storage
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: observiq-otel-collector
+  name: observiq-otel-collector
+  namespace: bindplane
+spec:
+  clusterIP: None
+  ports:
+    - port: 4318
+      protocol: TCP
+      targetPort: 4318
+      name: http
+    - port: 4317
+      protocol: TCP
+      targetPort: 4317
+      name: grpc
+    - port: 9090
+      protocol: TCP
+      targetPort: 9090
+      name: prom
+    - port: 8888
+      protocol: TCP
+      targetPort: 8888
+      name: mon
+  selector:
+    app: observiq-otel-collector
+  sessionAffinity: None
+  type: ClusterIP
+---
