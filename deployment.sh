@@ -73,7 +73,7 @@ echo 'Found external IP: '$IP
 #TODO to update this part to use the dns entry /ELB/ALB
 sed -i "s,IP_TO_REPLACE,$IP," kubernetes-manifests/K8sdemo.yaml
 sed -i "s,IP_TO_REPLACE,$IP," grafana/ingress.yaml
-sed -i "s,IP_TO_REPLACE,$IP," blindplane/bindplane.yaml
+sed -i "s,IP_TO_REPLACE,$IP," bindplane/bindplane.yaml
 ##Updating deployment files
 sed -i "s,VERSION_TO_REPLACE,$VERSION," kubernetes-manifests/K8sdemo.yaml
 
@@ -112,13 +112,7 @@ kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releas
 
 CLUSTERID=$(kubectl get namespace kube-system -o jsonpath='{.metadata.uid}')
 sed -i "s,CLUSTER_ID_TOREPLACE,$CLUSTERID," kubernetes-manifests/openTelemetry-sidecar.yaml
-sed -i "s,CLUSTER_ID_TOREPLACE,$CLUSTERID," hipster-shop/openTelemetry-sidecar.yaml
 sed -i "s,CLUSTER_NAME_TO_REPLACE,$CLUSTERNAME," kubernetes-manifests/openTelemetry-sidecar.yaml
-sed -i "s,CLUSTER_NAME_TO_REPLACE,$CLUSTERNAME,"  hipster-shop/openTelemetry-sidecar.yaml
-
-
-
-
 
 # Deploy the Kubecost
 kubectl apply -f grafana/ingress.yaml

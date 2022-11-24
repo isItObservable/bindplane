@@ -180,16 +180,16 @@ BINDPLANE_PASS=<YOUR PASSWORD>
 BINDPLANE_CONFIG_SECRET_KEY=6b130308-9189-47cf-905a-b9abf4b6641e
 BINDPLANE_CONFIG_SESSIONS_SECRET=b399bc86-db0d-4075-a477-3c3ce0d57e43
 kubectl create ns bindplane
-kubectl create secret generic bindplane --from-literal='BINDPLANE_PASS=$BINDPLANE_PASS' --from-literal="BINDPLANE_CONFIG_SECRET_KEY=$BINDPLANE_CONFIG_SECRET_KEY" --from-literal="BINDPLANE_CONFIG_SESSIONS_SECRET=$BINDPLANE_CONFIG_SESSIONS_SECRET" -n bindplane
+kubectl create secret generic bindplane --from-literal="BINDPLANE_PASS=$BINDPLANE_PASS" --from-literal="BINDPLANE_CONFIG_SECRET_KEY=$BINDPLANE_CONFIG_SECRET_KEY" --from-literal="BINDPLANE_CONFIG_SESSIONS_SECRET=$BINDPLANE_CONFIG_SESSIONS_SECRET" -n bindplane
 ```
 
 #### Deploy Bindplane Server
 ```
-kubectl apply -f blindplane/bindplane.yaml -n bindplane
+kubectl apply -f bindplane/bindplane.yaml -n bindplane
 ```
 #### Deploy the bindplane Collector
 ```
-kubectl apply -f blindplane/daemonset.yaml -n bindplane
+kubectl apply -f bindplane/daemonset.yaml -n bindplane
 ```
 
 ### 7. Deploy The application
