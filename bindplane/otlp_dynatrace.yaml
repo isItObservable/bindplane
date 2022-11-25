@@ -4,7 +4,7 @@ metadata:
   name: otlp_dynatrace
   displayName: OpenTelemetry Dyantrace (OTLP http)
   icon: /icons/destinations/dynatrace.svg
-  description: Send traces to dynatrace endpoint.
+  description: Send traces and metrics to dynatrace endpoint.
 spec:
   parameters:
     - name: dynatrace_endpoint
@@ -25,10 +25,10 @@ spec:
           url: https://www.dynatrace.com/support/help/extend-dynatrace/opentelemetry/opentelemetry-traces/opentelemetry-trace-ingest-api
 
 
-  traces:
+  metrics+traces:
     exporters: |
       - otlphttp:
-          endpoint: {{ .dynatrace_endpoint }}
+          endpoint: {{ .dynatrace_endpoint }}/api/v2/otlp
           headers:
             Authorization: "Api-Token {{ .apitoken }}"
 
